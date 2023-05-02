@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using System;
 
 namespace Microsoft.MixedReality.GraphicsTools
 {
@@ -147,6 +148,15 @@ namespace Microsoft.MixedReality.GraphicsTools
                     processedMeshes.Remove(sharedMesh);
                 }
             }
+        }
+        
+        /// <summary>
+        /// Clean up dictionary before quit play mode if enabled Reload Domain
+        /// More information: https://docs.unity3d.com/Manual/DomainReloading.html
+        /// </summary>
+        private void OnApplicationQuit()
+        {
+            processedMeshes.Clear();
         }
 
         #endregion MonoBehaviour Implementation
