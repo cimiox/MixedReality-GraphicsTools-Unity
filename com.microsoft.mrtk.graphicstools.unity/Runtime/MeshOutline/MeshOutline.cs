@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -23,8 +24,8 @@ namespace Microsoft.MixedReality.GraphicsTools
         private Renderer meshRenderer = null;
         private int stencilReferenceID = Shader.PropertyToID("_StencilReference");
         private int vertexExtrusionValueID = Shader.PropertyToID("_VertexExtrusionValue");
-        private Material[] defaultMaterials = null;
         private MeshSmoother createdMeshSmoother = null;
+        private List<Material> currentOutlineMaterials;
 
         #region MonoBehaviour Implementation
 
@@ -40,7 +41,6 @@ namespace Microsoft.MixedReality.GraphicsTools
             }
 
             meshRenderer = GetComponent<Renderer>();
-            defaultMaterials = meshRenderer.sharedMaterials;
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Microsoft.MixedReality.GraphicsTools
         /// </summary>
         private void OnDisable()
         {
-            meshRenderer.materials = defaultMaterials;
+	        meshRenderer.sharedMaterials = GetRendererMaterialsWithoutOutline().ToArray();
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Microsoft.MixedReality.GraphicsTools
                 // Ensure that the stencil material renders after the default materials and the outline material after the stencil material.
                 if (AutoAssignRenderQueue)
                 {
-                    int maxRenderQueue = Mathf.Max(GetMaxRenderQueue(defaultMaterials), (int)RenderQueue.Overlay);
+                    int maxRenderQueue = Mathf.Max(GetMaxRenderQueue(meshRenderer.sharedMaterials), (int)RenderQueue.Overlay);
                     stencilWriteMaterial.renderQueue = maxRenderQueue + 1;
                     outlineMaterial.renderQueue = maxRenderQueue + 2;
                 }
@@ -108,7 +108,7 @@ namespace Microsoft.MixedReality.GraphicsTools
                 // Ensure that the outline material always renders before the default materials.
                 if (AutoAssignRenderQueue)
                 {
-                    outlineMaterial.renderQueue = GetMinRenderQueue(defaultMaterials) - 1;
+                    outlineMaterial.renderQueue = GetMinRenderQueue(meshRenderer.sharedMaterials) - 1;
                 }
             }
 
@@ -129,17 +129,40 @@ namespace Microsoft.MixedReality.GraphicsTools
             ApplyOutlineWidth();
             ApplyStencilReference();
 
+            var startMaterials = GetRendererMaterialsWithoutOutline();
+            
             // Add the outline material as another material pass.
-            var materials = new List<Material>(defaultMaterials);
+
+            currentOutlineMaterials?.Clear();
+            currentOutlineMaterials ??= new List<Material>();
 
             if (UseStencilOutline)
             {
-                materials.Add(stencilWriteMaterial);
+	            currentOutlineMaterials.Add(stencilWriteMaterial);
             }
 
-            materials.Add(outlineMaterial);
+            currentOutlineMaterials.Add(outlineMaterial);
+            meshRenderer.materials = startMaterials.Concat(currentOutlineMaterials).ToArray();
+        }
 
-            meshRenderer.materials = materials.ToArray();
+        private List<Material> GetRendererMaterialsWithoutOutline()
+        {
+	        if (null == currentOutlineMaterials || currentOutlineMaterials.Count == 0)
+	        {
+		        return meshRenderer.sharedMaterials.ToList();
+	        }
+
+	        var oldMaterials = new List<Material>();
+
+	        for (int i = 0; i < meshRenderer.sharedMaterials.Length; i++)
+	        {
+		        if (!currentOutlineMaterials.Contains(meshRenderer.sharedMaterials[i]))
+		        {
+			        oldMaterials.Add(meshRenderer.sharedMaterials[i]);
+		        }
+	        }
+
+	        return oldMaterials;
         }
 
         /// <summary>
