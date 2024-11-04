@@ -233,8 +233,6 @@ namespace Microsoft.MixedReality.GraphicsTools
         /// <returns>A list of normals which are smoothed, or averaged, based on share vertex position.</returns>
         private static List<Vector3> CalculateSmoothNormals(Vector3[] vertices, Vector3[] normals)
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
             // Group all vertices that share the same location in space.
             var groupedVerticies = new Dictionary<Vector3, List<KeyValuePair<int, Vector3>>>();
 
@@ -280,8 +278,6 @@ namespace Microsoft.MixedReality.GraphicsTools
                     }
                 }
             }
-
-            Debug.LogFormat("CalculateSmoothNormals took {0} ms on {1} vertices.", watch.ElapsedMilliseconds, vertices.Length);
 
             return smoothNormals;
         }
